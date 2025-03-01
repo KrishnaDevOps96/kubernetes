@@ -1,0 +1,37 @@
+steps:
+  # Authenticate Docker to push to Artifact Registry
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud auth configure-docker asia-south1-docker.pkg.dev
+
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', '-t', 
+      'asia-south1-docker.pkg.dev/$PROJECT_ID/image-repo/nodeapp:$BUILD_ID', 
+      '.'
+    ]
+
+  # Push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'asia-south1-docker.pkg.dev/$PROJECT_ID/image-repo/nodeapp:$BUILD_ID'
+    ]
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args: [
+      'gcloud', 'run', 'deploy', 'nodeapp',
+      '--image', 'asia-south1-docker.pkg.dev/$PROJECT_ID/image-repo/nodeapp:$BUILD_ID',
+      '--region', 'asia-south1',
+      '--platform', 'managed',
+      '--port', '3000',
+      '--allow-unauthenticated'
+    ]
+
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/image-repo/nodeapp:$BUILD_ID'
